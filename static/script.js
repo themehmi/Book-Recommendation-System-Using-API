@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressText: document.getElementById('progress-text')
     };
 
-    // --- Initialization ---
+    // --- Core Logic ---
     elements.startBtn.addEventListener('click', startQuiz);
     elements.quizForm.addEventListener('submit', handleAnswer);
     
@@ -43,11 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.resultsSection.classList.add('hidden');
         elements.startSection.classList.remove('hidden');
         elements.progressContainer.classList.add('hidden');
-        // Reset progress bar
-        updateProgress();
     });
-
-    // --- Core Logic ---
 
     async function startQuiz() {
         elements.startSection.classList.add('hidden');
@@ -58,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchNextQuestion() {
-        // Show loading state if we are transitioning between questions
         if (history.length > 0) {
             showLoading("Refining the search...");
             elements.quizSection.classList.add('hidden');
@@ -74,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Unable to connect to the archive.');
 
-            // Check if backend signaled completion early
             if (data.done || history.length >= MAX_QUESTIONS) {
                 await fetchRecommendations();
                 return;
@@ -136,27 +130,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- UI Helpers ---
-
     function updateProgress() {
         const count = history.length;
         const currentNum = Math.min(count + 1, MAX_QUESTIONS);
         const percentage = (count / MAX_QUESTIONS) * 100;
         
-        if (elements.progressBar) {
-            elements.progressBar.style.width = `${percentage}%`;
-        }
-        if (elements.progressText) {
-            elements.progressText.textContent = `Inquiry ${currentNum} of ${MAX_QUESTIONS}`;
-        }
+        if (elements.progressBar) elements.progressBar.style.width = `${percentage}%`;
+        if (elements.progressText) elements.progressText.textContent = `Inquiry ${currentNum} of ${MAX_QUESTIONS}`;
     }
 
     function showLoading(msg) {
         elements.loadingTextDisplay.textContent = msg;
         elements.loadingSection.classList.remove('hidden');
         elements.errorSection.classList.add('hidden');
-        elements.quizSection.classList.add('hidden');
-        elements.startSection.classList.add('hidden');
     }
 
     function hideLoading() {
@@ -167,24 +153,20 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoading();
         elements.errorText.textContent = msg;
         elements.errorSection.classList.remove('hidden');
-        elements.quizSection.classList.add('hidden');
-        elements.progressContainer.classList.add('hidden');
     }
 
     function renderBooks(books) {
         elements.booksGrid.innerHTML = '';
         if (!books || books.length === 0) {
-            elements.booksGrid.innerHTML = '<p class="body-text">No recommendations found in the current selection.</p>';
+            elements.booksGrid.innerHTML = '<p>No recommendations found in the current selection.</p>';
             return;
         }
 
         books.forEach((book, index) => {
             const card = document.createElement('div');
             card.className = 'book-card';
-            
-            // Staggered animation effect
             card.style.animation = `fadeUp 0.6s ease forwards`;
-            card.style.animationDelay = `${index * 0.15}s`;
+            card.style.animationDelay = `${index * 0.1}s`;
             card.style.opacity = '0';
 
             card.innerHTML = `
@@ -201,10 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function escapeHtml(unsafe) {
         return (unsafe || '').toString()
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
+             .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 });
