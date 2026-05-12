@@ -1,11 +1,16 @@
 :root {
-    --bg-color: #121212; /* Deep charcoal/black */
-    --text-color: #e8e6e3; /* Off-white/cream */
+    --bg-color: #121212;
+    /* Deep charcoal/black */
+    --text-color: #e8e6e3;
+    /* Off-white/cream */
     --text-muted: #8a8a8a;
-    --accent-color: #c5a880; /* Sophisticated gold/bronze */
+    --accent-color: #c5a880;
+    /* Sophisticated gold/bronze */
     --accent-hover: #e0c39a;
-    --border-color: #2c2a29; /* Subtle dark border */
-    --card-bg: #1e1d1c; /* Slightly lighter than bg for elevation */
+    --border-color: #2c2a29;
+    /* Subtle dark border */
+    --card-bg: #1e1d1c;
+    /* Slightly lighter than bg for elevation */
     --font-heading: 'Playfair Display', serif;
     --font-body: 'Lato', sans-serif;
     --transition: 0.3s ease;
@@ -29,7 +34,10 @@ body {
 /* Subtle Texture Overlay */
 .texture-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
     opacity: 0.03;
     pointer-events: none;
@@ -130,7 +138,8 @@ body {
 }
 
 /* Cards */
-.editorial-card, .inquiry-card {
+.editorial-card,
+.inquiry-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     padding: 4rem;
@@ -141,18 +150,27 @@ body {
 }
 
 .error-card {
-    border-top: 4px solid #c86b5e; /* Terracotta error accent */
+    border-top: 4px solid #c86b5e;
+    /* Terracotta error accent */
 }
 
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Buttons */
 .primary-btn {
     background: var(--accent-color);
-    color: #121212; /* Dark text on gold button for contrast */
+    color: #121212;
+    /* Dark text on gold button for contrast */
     border: none;
     padding: 1rem 2.5rem;
     border-radius: 2px;
@@ -262,7 +280,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .loading-text {
@@ -293,7 +313,7 @@ body {
 }
 
 .book-card:hover {
-    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
     transform: translateY(-2px);
 }
 
@@ -342,13 +362,77 @@ body {
 }
 
 /* Utils */
-.hidden { display: none !important; }
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    .editorial-card,
+    .inquiry-card {
+        padding: 3rem;
+    }
+
+    .headline-large {
+        font-size: 3rem;
+    }
+
+    .question-text {
+        font-size: 2rem;
+    }
+
+    .book-grid {
+        gap: 2rem;
+    }
+}
 
 @media (max-width: 600px) {
-    .editorial-card, .inquiry-card { padding: 2rem; }
-    .headline-large { font-size: 2.5rem; }
-    .question-text { font-size: 1.8rem; }
+    .page-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .site-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .progress-indicator {
+        align-items: flex-start;
+    }
+
+    .editorial-card,
+    .inquiry-card {
+        padding: 1.5rem;
+    }
+
+    .headline-large {
+        font-size: 2.2rem;
+    }
+
+    .headline-medium {
+        font-size: 1.8rem;
+    }
+
+    .question-text {
+        font-size: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .book-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .book-card {
+        padding: 1.5rem;
+    }
+    
+    .primary-btn {
+        width: 100%;
+    }
 }
+
 /* Footer & Source Link Styles */
 .site-footer {
     margin-top: 5rem;
@@ -379,7 +463,8 @@ body {
 .source-link:hover {
     color: var(--accent-color);
     border-color: var(--border-color);
-    background: rgba(197, 168, 128, 0.05); /* Very subtle gold tint */
+    background: rgba(197, 168, 128, 0.05);
+    /* Very subtle gold tint */
 }
 
 /* Ensure the footer doesn't overlap on small screens */
