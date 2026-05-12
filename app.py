@@ -1,115 +1,212 @@
-<!DOCTYPE html>
-<html lang="en">
+import os
+import re
+import json
+import requests
+import logging
+# pyrefly: ignore [missing-import]
+from flask import Flask, render_template, request, jsonify
+# pyrefly: ignore [missing-import]
+from dotenv import load_dotenv
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumina | The Reading Room</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
-</head>
+load_dotenv()
 
-<body class="editorial-theme">
-    <div class="texture-overlay"></div>
+app = Flask(__name__)
 
-    <div class="page-container">
-        <header class="site-header">
-            <div class="brand">
-                <h1 class="brand-title">Lumina.</h1>
-                <span class="brand-subtitle">Curated Discoveries</span>
-            </div>
-            <div class="progress-indicator hidden" id="progress-container">
-                <span class="progress-text" id="progress-text">Inquiry 1 of 10</span>
-                <div class="progress-bar-wrap">
-                    <div class="progress-fill" id="progress-bar"></div>
-                </div>
-            </div>
-        </header>
+# Configure logging to file
+logging.basicConfig(
+    filename='server_debug.log',
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
 
-        <main class="main-content">
-            <!-- Start Section -->
-            <section id="start-section" class="content-section center-align">
-                <div class="editorial-card">
-                    <h2 class="headline-large">Find a Book<br>Worth Your Time.</h2>
-                    <p class="body-text-large">A brief conversation to uncover the exact story you’re looking for right
-                        now.</p>
-                    <button id="start-btn" class="primary-btn">
-                        Begin the Conversation
-                    </button>
-                </div>
-            </section>
+# User specifically requested Nvidia API endpoint
+API_URL = "https://integrate.api.nvidia.com/v1"
+API_KEY = os.getenv("API_KEY")
+MODEL = "meta/llama-3.1-8b-instruct"
 
-            <!-- Quiz Section -->
-            <section id="quiz-section" class="content-section hidden">
-                <div class="inquiry-card">
-                    <div class="section-label">Current Inquiry</div>
-                    <h3 id="question-text" class="question-text">Loading question...</h3>
-                    <form id="quiz-form" class="response-form">
-                        <div class="input-group">
-                            <input type="text" id="answer-input" placeholder="Your thoughts..." required
-                                autocomplete="off">
-                            <button type="submit" id="next-btn" class="icon-btn" aria-label="Next">
-                                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="1.5"
-                                    fill="none">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
+def extract_json_from_response(text: str) -> str:
+    """
+    Robustly extracts JSON from a string, handling markdown blocks or surrounding text.
+    """
+    text = text.strip()
+    # Search for content within ```json ... ``` or ``` ... ```
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if match:
+        return match.group(1).strip()
+    
+    # Fallback: find the outermost JSON structure (object or array)
+    start_obj = text.find('{')
+    start_arr = text.find('[')
+    
+    # Determine the earliest starting point
+    if start_obj != -1 and (start_arr == -1 or start_obj < start_arr):
+        start = start_obj
+        end = text.rfind('}')
+    elif start_arr != -1:
+        start = start_arr
+        end = text.rfind(']')
+    else:
+        return text
 
-            <!-- Loading Section -->
-            <section id="loading-section" class="content-section center-align hidden">
-                <div class="loading-state">
-                    <div class="elegant-spinner"></div>
-                    <p id="loading-text-display" class="loading-text">Gathering thoughts...</p>
-                </div>
-            </section>
+    if start != -1 and end != -1 and end > start:
+        return text[start:end+1]
+        
+    return text
 
-            <!-- Error Section -->
-            <section id="error-section" class="content-section center-align hidden">
-                <div class="editorial-card error-card">
-                    <h3 class="headline-medium">An Interruption</h3>
-                    <p id="error-text" class="body-text">We lost our place in the stacks.</p>
-                    <button id="retry-btn" class="secondary-btn">Try Again</button>
-                </div>
-            </section>
 
-            <!-- Results Section -->
-            <section id="results-section" class="content-section hidden">
-                <div class="results-header">
-                    <h2 class="headline-medium">Your Selected Collection</h2>
-                    <p class="body-text">Based on our conversation, we recommend the following titles.</p>
-                </div>
-                <div class="book-grid" id="books-grid">
-                    <!-- Book cards will be injected here -->
-                </div>
-                <div class="results-footer">
-                    <button id="restart-btn" class="secondary-btn">Start a New Search</button>
-                </div>
-            </section>
-        </main>
-    </div>
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-    <footer class="site-footer">
-        <a href="https://github.com/themehmi/Book-Recommendation-System-Using-API/" target="_blank"
-            rel="noopener noreferrer" class="source-link">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path
-                    d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
-                </path>
-            </svg>
-            <span>View Source Code</span>
-        </a>
-    </footer>
 
-    <script src="/static/script.js"></script>
-</body>
+@app.route("/api/next_question", methods=["POST"])
+def next_question():
+    if not API_KEY:
+        return jsonify({"error": "API Key is not configured."}), 500
 
-</html>
+    data = request.json or {}
+    history = data.get("history", [])
+    
+    # Static First Question for Instant Load
+    if len(history) == 0:
+        return jsonify({"question": "What kind of stories or topics are you usually drawn to?", "done": False})
+        
+    if len(history) >= 10:
+        return jsonify({"done": True})
+
+    # Minimalist prompt for speed
+    system_prompt = "You are an AI Librarian. Ask ONE follow-up question to refine book recommendations. Respond ONLY with JSON: {\"question\": \"...\"}"
+
+    messages = [{"role": "system", "content": system_prompt}]
+    for item in history:
+        if isinstance(item, dict):
+            if "question" in item: messages.append({"role": "assistant", "content": item["question"]})
+            if "answer" in item: messages.append({"role": "user", "content": item["answer"]})
+
+    payload = {
+        "model": MODEL,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": 100, # Shorter limit for speed
+    }
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    ai_message = ""
+    try:
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(f"{API_URL}/chat/completions", headers=headers, json=payload, timeout=60)
+                response.raise_for_status()
+                result = response.json()
+                ai_message = result["choices"][0]["message"]["content"].strip()
+                break
+            except requests.exceptions.ReadTimeout:
+                if attempt == max_retries - 1:
+                    raise
+                app.logger.warning(f"API timeout on attempt {attempt + 1}, retrying...")
+            except Exception as e:
+                raise e
+
+        
+        app.logger.debug(f"RAW AI RESPONSE: {ai_message}")
+        cleaned = extract_json_from_response(ai_message)
+        try:
+            parsed = json.loads(cleaned)
+            question = parsed.get("question") or "What else do you look for in a good book?"
+        except json.JSONDecodeError:
+            app.logger.warning(f"Failed to parse JSON in next_question. Using raw ai_message. Cleaned string: {cleaned}")
+            question = ai_message if ai_message and len(ai_message) > 5 else "What else do you look for in a good book?"
+            
+        return jsonify({"question": question, "done": False})
+    except Exception as e:
+        app.logger.error(f"Error in next_question: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to process request."}), 500
+
+
+@app.route("/api/recommend", methods=["POST"])
+def recommend():
+    if not API_KEY:
+        return jsonify({"error": "API Key is not configured."}), 500
+
+    data = request.json or {}
+    history = data.get("history", [])
+
+    system_prompt = """
+You are a sophisticated book recommendation engine acting as a digital librarian.
+Provide exactly 3 tailored book suggestions as a JSON array of objects.
+STRICT JSON ONLY. No markdown, no extra text.
+
+Object Schema:
+{
+  "title": "Book Title",
+  "author": "Author Name",
+  "genre": "Genre",
+  "summary": "1-2 sentence summary",
+  "reason": "Why it fits their taste",
+  "match_score": 95
+}
+"""
+
+    messages = [{"role": "system", "content": system_prompt}]
+    for item in history:
+        if isinstance(item, dict):
+            if "question" in item: messages.append({"role": "assistant", "content": item["question"]})
+            if "answer" in item: messages.append({"role": "user", "content": item["answer"]})
+
+    payload = {
+        "model": MODEL,
+        "messages": messages,
+        "temperature": 0.1,
+        "max_tokens": 2048,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    ai_message = ""
+    try:
+        app.logger.info("Requesting recommendations...")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(f"{API_URL}/chat/completions", headers=headers, json=payload, timeout=60)
+                response.raise_for_status()
+                result = response.json()
+                ai_message = result["choices"][0]["message"]["content"].strip()
+                break
+            except requests.exceptions.ReadTimeout:
+                if attempt == max_retries - 1:
+                    raise
+                app.logger.warning(f"API timeout on attempt {attempt + 1} for recommendations, retrying...")
+            except Exception as e:
+                raise e
+
+        app.logger.debug(f"RAW AI RESPONSE: {ai_message}")
+        
+        cleaned = extract_json_from_response(ai_message)
+        try:
+            suggestions = json.loads(cleaned)
+        except json.JSONDecodeError:
+            app.logger.error(f"Failed to parse recommendations JSON. Cleaned string: {cleaned}")
+            return jsonify({"error": "The AI provided an invalid response format. Please try again."}), 500
+        
+        if isinstance(suggestions, dict):
+            for value in suggestions.values():
+                if isinstance(value, list):
+                    suggestions = value
+                    break
+
+        return jsonify({"recommendations": suggestions})
+    except Exception as e:
+        app.logger.error(f"Error in recommend: {str(e)}")
+        app.logger.error(f"AI Message that failed: {ai_message}")
+    
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
